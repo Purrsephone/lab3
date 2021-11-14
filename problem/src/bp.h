@@ -23,7 +23,7 @@ typedef struct
 
 typedef struct 
 {
-    short ghr;
+    int ghr;
     // pht can just be an array of ints where 0 = 00, 1 = 01, 2 = 10, 3 = 11
     int pht[256];
 } gshare_t;

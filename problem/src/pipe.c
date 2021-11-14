@@ -229,6 +229,16 @@ void pipe_cycle() {
         printf("%lu\n", CURRENT_STATE.PC);
     }
     cycles++;
+    // let's print the btb 
+    /*
+    for(int i = 0; i < 10; i++) {
+        printf("PHT %i: %u\n", i, bp.gshare.pht[i]);
+    }
+    */
+   for (int j = 0; j < 50; j++) {
+       printf("entry %li\n", bp.btb.entries[j].target);
+   }
+    printf("GHR IS: %i\n", bp.gshare.ghr);
 }
 
 //DE_to_EX.res will be the value that we grabbed
@@ -982,7 +992,7 @@ void pipe_stage_execute()
     }
     int is_conditional; 
     if((EX_to_MEM.decoded_instr.opcode == B) || (EX_to_MEM.decoded_instr.opcode == BR)) {
-        is_conditional = 1;
+        is_conditional = 0;
     }
     if((EX_to_MEM.decoded_instr.opcode == CBZ) ||
         (EX_to_MEM.decoded_instr.opcode == CBNZ) ||
@@ -992,16 +1002,22 @@ void pipe_stage_execute()
         (EX_to_MEM.decoded_instr.opcode == BLT) ||
         (EX_to_MEM.decoded_instr.opcode == BGE) ||
         (EX_to_MEM.decoded_instr.opcode == BLE)) {
-            is_conditional = 0;
+            is_conditional = 1;
     }
     // TODO: we need the pc from when the branch instr was in fetch, is this right?? 
     // TODO: double check that target pc should be branch pc 
     if((EX_to_MEM.decoded_instr.type == CB ||
         EX_to_MEM.decoded_instr.type == BI)) {
             printf("SOPHIE HERE IS WHERE WE'RE UPDATING\n");
-            printf("%li\n", branch_pc);
+            printf("%lu\n", branch_pc);
+            printf("CURRENT VAL OF PC BEFORE UPDATE %lu\n", CURRENT_STATE.PC);
+            uint64_t tmp_tmp = CURRENT_STATE.PC;
             CURRENT_STATE.PC = branch_pc;
-             bp_update(CURRENT_STATE.PC, is_taken, is_conditional, DE_to_EX.pc, branch_pc);
+            printf("CURRENT VAL OF PC AFTER UPDATE %lu\n", CURRENT_STATE.PC);
+            printf("DE TO EX PC %lu\n", DE_to_EX.actually_pc);
+            // why would it be de to ex actually pc for both? 
+            printf("CHECK BRANCH PC AGAIN%lu\n", branch_pc);
+             bp_update(CURRENT_STATE.PC, is_taken, is_conditional, DE_to_EX.actually_pc, branch_pc);
              //check if we need to flush 
              // cases where we guessed wrong 
              // the predicted target destination does not match the actual target.
@@ -1050,6 +1066,7 @@ void pipe_stage_decode()
 	printf("decode pc %lx \n", IF_to_DE.actually_pc);
     DE_to_EX.predicted_pc = IF_to_DE.predicted_pc;
     DE_to_EX.pc = IF_to_DE.pc;
+    //printf("IF TO DE pc getting messed up %lu\n", IF_to_DE.pc);
     DE_to_EX.flag_n = IF_to_DE.flag_n;
     DE_to_EX.flag_z = IF_to_DE.flag_z;
     DE_to_EX.actually_pc = IF_to_DE.actually_pc;
