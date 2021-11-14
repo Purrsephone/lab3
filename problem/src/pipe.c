@@ -160,7 +160,7 @@ void pipe_cycle() {
         call_wb =  call_mem;
         call_mem = call_ex;
         call_ex = call_id;
-        call_id = !branch_exists;
+        //call_id = !branch_exists;
 
         if (branch_exists) {
             printf("branch exists\n");
@@ -184,7 +184,7 @@ void pipe_cycle() {
                     else {
                         printf("branch target not same as next\n");
                         CURRENT_STATE.PC = branch_pc;
-                        call_id = false;
+                        //call_id = false;
                         call_if = true;
                     }
                 }
@@ -1507,28 +1507,33 @@ void pipe_stage_fetch()
         flush = 0;
         return;
     }
-    
+    uint64_t temp_pc = CURRENT_STATE.PC;
     if(resetting_pc == 1) {
+        
         CURRENT_STATE.PC = predicted_pc;
+        temp_pc += 4;
         resetting_pc = 0;
+        printf("WE ARE RESETTING");
+        printf("\nRESET PC %lu\n", CURRENT_STATE.PC);
     }
     
     //printf("PC 1 %lu\n", CURRENT_STATE.PC);
-    uint64_t temp_pc = CURRENT_STATE.PC;
+    printf("\nHERE %lu\n", CURRENT_STATE.PC);
     pc = mem_read_32(CURRENT_STATE.PC);
     IF_to_DE.flag_z = CURRENT_STATE.FLAG_Z;
     IF_to_DE.flag_n = CURRENT_STATE.FLAG_N;
     IF_to_DE.pc = pc;
     IF_to_DE.actually_pc = CURRENT_STATE.PC;
-    printf("HERE %lu\n", CURRENT_STATE.PC);
+    //printf("HERE %lu\n", CURRENT_STATE.PC);
     bp_predict(temp_pc);
     IF_to_DE.predicted_pc = predicted_pc;
-    printf("HERE %lu\n", CURRENT_STATE.PC);
+    printf("predicted PC: %lu\n", predicted_pc);
+    //printf("HERE %lu\n", CURRENT_STATE.PC);
 	// predict next PC 
 	//bp_predict(CURRENT_STATE.PC);
-    printf("pc %u\n", mem_read_32(CURRENT_STATE.PC));
-    printf("fetch %lx\n", CURRENT_STATE.PC);
-    printf("Final fucking pc");
-    printf("%lu", CURRENT_STATE.PC);
+    //printf("pc %u\n", mem_read_32(CURRENT_STATE.PC));
+    //printf("fetch %lx\n", CURRENT_STATE.PC);
+    //printf("Final fucking pc");
+    //printf("%lu", CURRENT_STATE.PC);
 
 }
