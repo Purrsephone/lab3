@@ -230,12 +230,12 @@ void pipe_cycle() {
     }
     cycles++;
     // let's print the btb 
-    /*
-    for(int i = 0; i < 10; i++) {
+    
+    for(int i = 0; i < 16; i++) {
         printf("PHT %i: %u\n", i, bp.gshare.pht[i]);
     }
-    */
-   for (int j = 0; j < 50; j++) {
+    
+   for (int j = 0; j < 16; j++) {
        printf("entry %li\n", bp.btb.entries[j].target);
    }
     printf("GHR IS: %i\n", bp.gshare.ghr);
@@ -1016,7 +1016,7 @@ void pipe_stage_execute()
             printf("CURRENT VAL OF PC AFTER UPDATE %lu\n", CURRENT_STATE.PC);
             printf("DE TO EX PC %lu\n", DE_to_EX.actually_pc);
             // why would it be de to ex actually pc for both? 
-            printf("CHECK BRANCH PC AGAIN%lu\n", branch_pc);
+            printf("CHECK BRANCH PC AGAIN %lu\n", branch_pc);
              bp_update(CURRENT_STATE.PC, is_taken, is_conditional, DE_to_EX.actually_pc, branch_pc);
              //check if we need to flush 
              // cases where we guessed wrong 
