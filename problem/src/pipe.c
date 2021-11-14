@@ -28,6 +28,7 @@ int flush = 0;
 int make_bub = 0;
 int btb_miss; 
 int resetting_pc = 0;
+int manually_set_pc = 0;
 Pipe_Reg_IFtoDE IF_to_DE = {
     .pc = 0,
     .actually_pc = 0,
@@ -124,7 +125,7 @@ void pipe_init()
 bool call_wb = true, call_mem = true, call_ex = true, call_id = true, call_if = true;
 uint64_t branch_ins_add = 0;
 void pipe_cycle() {
-    printf("\n CYCLE %i\n", cycles);
+    printf("\n CYCLE %i\n", (cycles + 1));
     if (call_wb) {
         pipe_stage_wb();
         printf("wb flags z %i n %i\n", MEM_to_WB.flag_z, MEM_to_WB.flag_n);
@@ -138,11 +139,14 @@ void pipe_cycle() {
         printf("execute flags z %i n %i\n", DE_to_EX.flag_z, DE_to_EX.flag_n);
     }
     if (stall == 0) {
+        printf("stall is 0\n");
         if (call_id) {
+        printf("call_id is 0\n");
         pipe_stage_decode();
         printf("decode flags z %i n %i\n", IF_to_DE.flag_z, IF_to_DE.flag_n);
         }
         if (call_if) {
+            printf("call if is set");
             pipe_stage_fetch();
             printf("current_state flags z %i n %i\n", CURRENT_STATE.FLAG_Z, CURRENT_STATE.FLAG_N);
 
@@ -206,7 +210,17 @@ void pipe_cycle() {
     branch_exists = 0;
     branch_taken = 0;
     CURRENT_STATE.REGS[31] = 0;
-    CURRENT_STATE.PC = predicted_pc;
+    if(manually_set_pc == 1) {
+        printf("PC IS BEING MANUALLY SET\n");
+        CURRENT_STATE.PC = branch_pc;
+        manually_set_pc = 0;
+        printf("%lu\n", CURRENT_STATE.PC);
+    }
+    else {
+        printf("PC IS BEING PREDICTED\n");
+        CURRENT_STATE.PC = predicted_pc;
+        printf("%lu\n", CURRENT_STATE.PC);
+    }
     cycles++;
 }
 
@@ -977,19 +991,28 @@ void pipe_stage_execute()
     // TODO: double check that target pc should be branch pc 
     if((EX_to_MEM.decoded_instr.type == CB ||
         EX_to_MEM.decoded_instr.type == BI)) {
+            printf("SOPHIE HERE IS WHERE WE'RE UPDATING\n");
+            printf("%li\n", branch_pc);
+            CURRENT_STATE.PC = branch_pc;
              bp_update(CURRENT_STATE.PC, is_taken, is_conditional, DE_to_EX.pc, branch_pc);
              //check if we need to flush 
              // cases where we guessed wrong 
              // the predicted target destination does not match the actual target.
              if(branch_pc != DE_to_EX.predicted_pc) {
                  // flush decode 
+                 printf("pc was mispredicted\n");
                  // let's just make it a bubble 
+                 call_id = 1;
+                 call_if = 1;
+                 manually_set_pc = 1;
                  flush = 1;
                  return;
              }
              //
              if(btb_miss == 1) {
+                 printf("mispredicted as not a branch\n");
                  flush = 1;
+                 manually_set_pc = 1;
                  return;
              }
         }
@@ -997,6 +1020,7 @@ void pipe_stage_execute()
 
 void pipe_stage_decode()
 {
+    printf("WE MADE IT TO DECODE\n");
     // will happen 2nd cycle after mispredict 
     if(make_bub == 1) {
         DE_to_EX.decoded_instr.opcode = BUB;
@@ -1008,6 +1032,8 @@ void pipe_stage_decode()
     // will happen 1st cycle after midpredict 
     if(flush == 1) {
         DE_to_EX.decoded_instr.opcode = BUB;
+        printf("FLUSH COND\n");
+        printf("%lu", CURRENT_STATE.PC);
         return;
     }
     if (IF_to_DE.actually_pc == 0) {
@@ -1502,5 +1528,7 @@ void pipe_stage_fetch()
 	//bp_predict(CURRENT_STATE.PC);
     printf("pc %u\n", mem_read_32(CURRENT_STATE.PC));
     printf("fetch %lx\n", CURRENT_STATE.PC);
+    printf("Final fucking pc");
+    printf("%lu", CURRENT_STATE.PC);
 
 }
