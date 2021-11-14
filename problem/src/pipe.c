@@ -21,6 +21,7 @@ uint64_t pc;
 uint64_t hlt_pc;
 uint64_t pc_for_real;
 uint64_t predicted_pc;
+uint64_t tmp_pc_reset;
 
 int cycles = 0;
 int stall = 0;
@@ -29,6 +30,8 @@ int make_bub = 0;
 int btb_miss; 
 int resetting_pc = 0;
 int manually_set_pc = 0;
+int was_reset = 0;
+
 Pipe_Reg_IFtoDE IF_to_DE = {
     .pc = 0,
     .actually_pc = 0,
@@ -215,6 +218,10 @@ void pipe_cycle() {
         CURRENT_STATE.PC = branch_pc;
         manually_set_pc = 0;
         printf("%lu\n", CURRENT_STATE.PC);
+    }
+    else if(was_reset == 1) {
+        CURRENT_STATE.PC = tmp_pc_reset + 4;
+        was_reset = 0;
     }
     else {
         printf("PC IS BEING PREDICTED\n");
@@ -1509,8 +1516,9 @@ void pipe_stage_fetch()
     }
     uint64_t temp_pc = CURRENT_STATE.PC;
     if(resetting_pc == 1) {
-        
+        was_reset = 1;
         CURRENT_STATE.PC = predicted_pc;
+        tmp_pc_reset = CURRENT_STATE.PC;
         temp_pc += 4;
         resetting_pc = 0;
         printf("WE ARE RESETTING");
@@ -1528,6 +1536,7 @@ void pipe_stage_fetch()
     bp_predict(temp_pc);
     IF_to_DE.predicted_pc = predicted_pc;
     printf("predicted PC: %lu\n", predicted_pc);
+    printf("\n CURRENT STATE PC at end of fetch %lu\n", CURRENT_STATE.PC);
     //printf("HERE %lu\n", CURRENT_STATE.PC);
 	// predict next PC 
 	//bp_predict(CURRENT_STATE.PC);
