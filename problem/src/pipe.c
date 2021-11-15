@@ -1043,7 +1043,13 @@ void pipe_stage_execute()
                  flush = 1;
                  return;
              }
-             //
+             //i don't think we should have this condition but maybe I'm wrong?? 
+             // check on this pls 
+             if((is_taken == 0) && (branch_pc == DE_to_EX.predicted_pc)) {
+                 manually_set_pc = 1;
+                 flush = 1;
+                 branch_pc = (DE_to_EX.actually_pc + 4);
+             }
              else if(EX_to_MEM.btb_miss == 1) {
                  printf("BTB MISS: mispredicted as not a branch\n");
                   if((is_taken == 0) && (is_conditional == 1)) {
@@ -1061,7 +1067,7 @@ void pipe_stage_execute()
                  flush = 0;
                  manually_set_pc = 0;
              }
-             
+             printf("flush %i\n", flush);
         }
 }
 
