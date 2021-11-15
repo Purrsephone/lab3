@@ -1556,6 +1556,7 @@ void pipe_stage_fetch()
         flush = 0;
         return;
     }
+    
     uint64_t temp_pc = CURRENT_STATE.PC;
     if(resetting_pc == 1) {
         was_reset = 1;
@@ -1566,7 +1567,6 @@ void pipe_stage_fetch()
         printf("WE ARE RESETTING the PC\n");
         printf("RESET PC VALUE %lx\n", CURRENT_STATE.PC);
     }
-    
     //printf("PC 1 %lu\n", CURRENT_STATE.PC);
     //printf("\nHERE %lu\n", CURRENT_STATE.PC);
     pc = mem_read_32(CURRENT_STATE.PC);
@@ -1577,10 +1577,15 @@ void pipe_stage_fetch()
     //printf("HERE %lu\n", CURRENT_STATE.PC);
     bp_predict(temp_pc);
     IF_to_DE.predicted_pc = predicted_pc;
-    IF_to_DE.btb_miss = btb_miss_temp;
+    IF_to_DE.btb_miss = btb_miss_temp; 
     printf("predicted PC: %lx\n", predicted_pc);
     printf("\n CURRENT STATE PC at end of fetch %lx\n", CURRENT_STATE.PC);
     //printf("HERE %lu\n", CURRENT_STATE.PC);
+    /*
+    if(stat_cycles == 89) {
+        predicted_pc += 4;
+    }
+    */
 	// predict next PC 
 	//bp_predict(CURRENT_STATE.PC);
     //printf("pc %u\n", mem_read_32(CURRENT_STATE.PC));

@@ -38,7 +38,6 @@ void bp_predict(uint64_t pc_fetch)
         printf("PC FETCH: %lx\n", pc_fetch);
         printf("ADDR TAG: %lx\n", bp.btb.entries[btb_index].tag);
         printf("MISS: ADDRESS TAG NOT EQUAL\n");
-
         return;
     }
     // if valid bit is not set, just pc + 4 
