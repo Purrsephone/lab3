@@ -27,10 +27,10 @@ int cycles = 0;
 int stall = 0;
 int flush = 0;
 int make_bub = 0;
-int btb_miss; 
 int resetting_pc = 0;
 int manually_set_pc = 0;
 int was_reset = 0;
+int btb_miss_temp = 0;
 
 Pipe_Reg_IFtoDE IF_to_DE = {
     .pc = 0,
@@ -131,27 +131,27 @@ void pipe_cycle() {
     printf("\n CYCLE %i\n", (cycles + 1));
     if (call_wb) {
         pipe_stage_wb();
-        printf("wb flags z %i n %i\n", MEM_to_WB.flag_z, MEM_to_WB.flag_n);
+        //printf("wb flags z %i n %i\n", MEM_to_WB.flag_z, MEM_to_WB.flag_n);
     }
     if (call_mem) {
         pipe_stage_mem();
-        printf("mem flags z %i n %i\n", EX_to_MEM.flag_z, EX_to_MEM.flag_n);
+        //printf("mem flags z %i n %i\n", EX_to_MEM.flag_z, EX_to_MEM.flag_n);
     }
     if (call_ex) {
         pipe_stage_execute();
-        printf("execute flags z %i n %i\n", DE_to_EX.flag_z, DE_to_EX.flag_n);
+       // printf("execute flags z %i n %i\n", DE_to_EX.flag_z, DE_to_EX.flag_n);
     }
     if (stall == 0) {
         printf("stall is 0\n");
         if (call_id) {
         printf("call_id is 0\n");
         pipe_stage_decode();
-        printf("decode flags z %i n %i\n", IF_to_DE.flag_z, IF_to_DE.flag_n);
+       // printf("decode flags z %i n %i\n", IF_to_DE.flag_z, IF_to_DE.flag_n);
         }
         if (call_if) {
-            printf("call if is set");
+            printf("call if is set\n");
             pipe_stage_fetch();
-            printf("current_state flags z %i n %i\n", CURRENT_STATE.FLAG_Z, CURRENT_STATE.FLAG_N);
+           // printf("current_state flags z %i n %i\n", CURRENT_STATE.FLAG_Z, CURRENT_STATE.FLAG_N);
 
         }
         if (call_id) {
@@ -169,30 +169,30 @@ void pipe_cycle() {
             printf("branch exists\n");
             CURRENT_STATE.PC += 4;
             if (branch_taken == 0) {
-                call_if = false;
+                //call_if = false;
             }
         }
         else {
             //printf("decode definitely does not have branch / execute may have branch\n");
             if (branch_taken != 0) {
                 if (branch_taken == 1) {
-                    printf("branch taken %lx\n", branch_pc);
+                    //printf("branch taken %lx\n", branch_pc);
                     if (branch_pc == (DE_to_EX.actually_pc + 4)) {
-                        printf("branch target same as next\n");
+                       // printf("branch target same as next\n");
                         call_id = true;
                         //CURRENT_STATE.PC = CURRENT_STATE.PC + 4;
-                        printf("CURRENT_STATE %lx\n", CURRENT_STATE.PC);
+                        //printf("CURRENT_STATE %lx\n", CURRENT_STATE.PC);
                         call_if = true;
                     }
                     else {
-                        printf("branch target not same as next\n");
+                        //printf("branch target not same as next\n");
                         CURRENT_STATE.PC = branch_pc;
                         //call_id = false;
                         call_if = true;
                     }
                 }
                 if (branch_taken == 2) {
-                    printf("branch not taken\n");
+                   // printf("branch not taken\n");
                     //CURRENT_STATE.PC = CURRENT_STATE.PC + 4;
                     call_id = true;
                     call_if = true;
@@ -200,7 +200,7 @@ void pipe_cycle() {
             }
             else {
                 // TODO: SEE IF RIGHT 
-                printf("HERE");
+               // printf("HERE");
                 CURRENT_STATE.PC += 4;
                 call_id = true;
                 call_if = true;
@@ -214,10 +214,10 @@ void pipe_cycle() {
     branch_taken = 0;
     CURRENT_STATE.REGS[31] = 0;
     if(manually_set_pc == 1) {
-        printf("PC IS BEING MANUALLY SET\n");
-        CURRENT_STATE.PC = branch_pc;
-        manually_set_pc = 0;
-        printf("%lu\n", CURRENT_STATE.PC);
+            printf("PC IS BEING MANUALLY SET\n");
+            CURRENT_STATE.PC = branch_pc;
+            manually_set_pc = 0;
+
     }
     else if(was_reset == 1) {
         CURRENT_STATE.PC = tmp_pc_reset + 4;
@@ -226,19 +226,24 @@ void pipe_cycle() {
     else {
         printf("PC IS BEING PREDICTED\n");
         CURRENT_STATE.PC = predicted_pc;
-        printf("%lu\n", CURRENT_STATE.PC);
+        printf("PREDICTED PC: %lx\n", CURRENT_STATE.PC);
     }
     cycles++;
     // let's print the btb 
-    
-    for(int i = 0; i < 16; i++) {
+    /*
+    for(int i = 0; i < 81; i++) {
         printf("PHT %i: %u\n", i, bp.gshare.pht[i]);
     }
     
-   for (int j = 0; j < 16; j++) {
-       printf("entry %li\n", bp.btb.entries[j].target);
+   for (int j = 0; j < 81; j++) {
+       printf("tag %li\n", bp.btb.entries[j].tag);
+        printf("target %li\n", bp.btb.entries[j].target);
    }
+   */
     printf("GHR IS: %i\n", bp.gshare.ghr);
+    printf("val of btb miss in IF is: %i\n", IF_to_DE.btb_miss);
+    printf("val of btb miss in DE is: %i\n", DE_to_EX.btb_miss);
+    printf("val of btb miss in EX is: %i\n", EX_to_MEM.btb_miss);
 }
 
 //DE_to_EX.res will be the value that we grabbed
@@ -254,11 +259,11 @@ void check_dependency()
         (MEM_to_WB.decoded_instr.opcode == LDUR32) ||
         (MEM_to_WB.decoded_instr.opcode == LDURB) ||
         (MEM_to_WB.decoded_instr.opcode == LDURH)) {
-            printf("opcode de to ex %i\n",DE_to_EX.decoded_instr.opcode);
-            printf("opcode ex to mem %i\n",EX_to_MEM.decoded_instr.opcode);
-            printf("rt LDUR %li\n", MEM_to_WB.instr_data.rt);
-            printf("rt STUR (de to ex) %li\n", DE_to_EX.instr_data.rt);
-            printf("rt STUR (ex to mem) %li\n", EX_to_MEM.instr_data.rt);
+            //printf("opcode de to ex %i\n",DE_to_EX.decoded_instr.opcode);
+            //printf("opcode ex to mem %i\n",EX_to_MEM.decoded_instr.opcode);
+            //printf("rt LDUR %li\n", MEM_to_WB.instr_data.rt);
+            //printf("rt STUR (de to ex) %li\n", DE_to_EX.instr_data.rt);
+            //printf("rt STUR (ex to mem) %li\n", EX_to_MEM.instr_data.rt);
             if(EX_to_MEM.instr_data.rm == MEM_to_WB.instr_data.rt) {
                 stall = 1;
                 return;
@@ -273,7 +278,7 @@ void check_dependency()
                 (EX_to_MEM.decoded_instr.opcode == STURB) ||
                 (EX_to_MEM.decoded_instr.opcode == STURH))) {
                     stall = 1;
-		            printf("HERE\n");
+		            //printf("HERE\n");
                     return;
                 }
         }
@@ -287,13 +292,13 @@ void check_dependency()
         else if(EX_to_MEM.instr_data.rm == MEM_to_WB.instr_data.rd) {
             DE_to_EX.res = MEM_to_WB.res;
             DE_to_EX.dep = 1;
-	           printf("oops\n");
+	           //printf("oops\n");
         }
         //check if rn dependent
         else if(EX_to_MEM.instr_data.rn == MEM_to_WB.instr_data.rd) {
                 DE_to_EX.res = MEM_to_WB.res;
                 DE_to_EX.dep = 2;
-	            printf("oops 2\n");
+	            //printf("oops 2\n");
         }
 
         // check if instr dependent on LDUR in mem stage
@@ -340,7 +345,7 @@ void check_dependency()
 
 void pipe_stage_wb()
 {
-    printf("writeback %x pc %lx\n", MEM_to_WB.decoded_instr.opcode, MEM_to_WB.actually_pc);
+    //printf("writeback %x pc %lx\n", MEM_to_WB.decoded_instr.opcode, MEM_to_WB.actually_pc);
     //printf("mem to wb: %li \n", MEM_to_WB.res);
     // CBNZ, CBZ, STUR64, STUR32, STURB, STURH, HLT
     // BR, B, BEQ, BNE, BGT, BLT, BGE, BLE skip writeback
@@ -455,11 +460,11 @@ void pipe_stage_wb()
       }
 	if((cycles > 3) && (MEM_to_WB.decoded_instr.opcode != BUB))
 	{
-        printf("retiring instr %lx %x\n", MEM_to_WB.actually_pc, MEM_to_WB.decoded_instr.opcode);
+        //printf("retiring instr %lx %x\n", MEM_to_WB.actually_pc, MEM_to_WB.decoded_instr.opcode);
 		stat_inst_retire++;
 	}
     else {
-        printf("not retiring\n");
+        //printf("not retiring\n");
     }
     MEM_to_WB.decoded_instr.opcode = 0;
 }
@@ -486,7 +491,7 @@ void pipe_stage_mem()
     //     return;
     // }
    //printf("%u\n", EX_to_MEM.decoded_instr.opcode);
-    printf("memory %x pc %lx\n", EX_to_MEM.decoded_instr.opcode, EX_to_MEM.actually_pc);
+    //printf("memory %x pc %lx\n", EX_to_MEM.decoded_instr.opcode, EX_to_MEM.actually_pc);
    // printf("stat cycle: %d\n", stat_cycles);
     if(stall == 0) {
 
@@ -558,11 +563,12 @@ void pipe_stage_mem()
 
 void pipe_stage_execute()
 {
+    printf("opcode %i \n", DE_to_EX.decoded_instr.opcode);
     if (DE_to_EX.actually_pc == 0) {
         EX_to_MEM.actually_pc = 0;
         return;
     }
-    printf("execute %x pc %lx\n", DE_to_EX.decoded_instr.opcode, DE_to_EX.actually_pc);
+    //printf("execute %x pc %lx\n", DE_to_EX.decoded_instr.opcode, DE_to_EX.actually_pc);
     EX_to_MEM.branch_cond = 0;
     EX_to_MEM.branch_taken = 0;
     // check dependency
@@ -580,6 +586,7 @@ void pipe_stage_execute()
     // pass along info from one stage to next
     EX_to_MEM.flag_n = DE_to_EX.flag_n;
     EX_to_MEM.flag_z = DE_to_EX.flag_z;
+    EX_to_MEM.btb_miss = DE_to_EX.btb_miss;
     
 	check_dependency();
 
@@ -696,7 +703,7 @@ void pipe_stage_execute()
             branch_pc = CURRENT_STATE.REGS[DE_to_EX.instr_data.rn];
         }
         if (DE_to_EX.decoded_instr.opcode == B) {
-            printf("DE_TO_EX.instr_data.address %lu + DE_to_EX pc %lx\n", DE_to_EX.instr_data.address, DE_to_EX.actually_pc);
+            //printf("DE_TO_EX.instr_data.address %lu + DE_to_EX pc %lx\n", DE_to_EX.instr_data.address, DE_to_EX.actually_pc);
             branch_pc = (uint64_t) DE_to_EX.actually_pc + DE_to_EX.instr_data.address;
             EX_to_MEM.branch_taken = 1;
             EX_to_MEM.branch_cond = 1;
@@ -1009,15 +1016,15 @@ void pipe_stage_execute()
     if((EX_to_MEM.decoded_instr.type == CB ||
         EX_to_MEM.decoded_instr.type == BI)) {
             printf("SOPHIE HERE IS WHERE WE'RE UPDATING\n");
-            printf("%lu\n", branch_pc);
-            printf("CURRENT VAL OF PC BEFORE UPDATE %lu\n", CURRENT_STATE.PC);
+            printf("branch pc: %lx\n", branch_pc);
+            printf("CURRENT VAL OF PC BEFORE UPDATE %lx\n", CURRENT_STATE.PC);
             uint64_t tmp_tmp = CURRENT_STATE.PC;
             CURRENT_STATE.PC = branch_pc;
-            printf("CURRENT VAL OF PC AFTER UPDATE %lu\n", CURRENT_STATE.PC);
-            printf("DE TO EX PC %lu\n", DE_to_EX.actually_pc);
+            printf("CURRENT VAL OF PC AFTER UPDATE %lx\n", CURRENT_STATE.PC);
+            printf("DE TO EX PC %lx\n", DE_to_EX.actually_pc);
             // why would it be de to ex actually pc for both? 
-            printf("CHECK BRANCH PC AGAIN %lu\n", branch_pc);
-             bp_update(CURRENT_STATE.PC, is_taken, is_conditional, DE_to_EX.actually_pc, branch_pc);
+            printf("CHECK BRANCH PC AGAIN %lx\n", branch_pc);
+             bp_update(tmp_tmp, is_taken, is_conditional, DE_to_EX.actually_pc, branch_pc);
              //check if we need to flush 
              // cases where we guessed wrong 
              // the predicted target destination does not match the actual target.
@@ -1032,18 +1039,30 @@ void pipe_stage_execute()
                  return;
              }
              //
-             if(btb_miss == 1) {
-                 printf("mispredicted as not a branch\n");
-                 flush = 1;
-                 manually_set_pc = 1;
-                 return;
+             else if(EX_to_MEM.btb_miss == 1) {
+                 printf("BTB MISS: mispredicted as not a branch\n");
+                  if((is_taken == 0) && (is_conditional == 1)) {
+                      flush = 0;
+                      manually_set_pc = 0;
+                      return;
+                  }
+                  else {
+                    flush = 1;
+                    manually_set_pc = 1;
+                    return;
+                  }
              }
+             else {
+                 flush = 0;
+                 manually_set_pc = 0;
+             }
+             
         }
 }
 
 void pipe_stage_decode()
 {
-    printf("WE MADE IT TO DECODE\n");
+    //printf("WE MADE IT TO DECODE\n");
     // will happen 2nd cycle after mispredict 
     if(make_bub == 1) {
         DE_to_EX.decoded_instr.opcode = BUB;
@@ -1055,21 +1074,22 @@ void pipe_stage_decode()
     // will happen 1st cycle after midpredict 
     if(flush == 1) {
         DE_to_EX.decoded_instr.opcode = BUB;
-        printf("FLUSH COND\n");
-        printf("%lu", CURRENT_STATE.PC);
+        printf("We're flushing\n");
+        //printf("%lu", CURRENT_STATE.PC);
         return;
     }
     if (IF_to_DE.actually_pc == 0) {
-        printf("you should be here\n");
+        //printf("you should be here\n");
         return;
     }
-	printf("decode pc %lx \n", IF_to_DE.actually_pc);
+	//printf("decode pc %lx \n", IF_to_DE.actually_pc);
     DE_to_EX.predicted_pc = IF_to_DE.predicted_pc;
     DE_to_EX.pc = IF_to_DE.pc;
     //printf("IF TO DE pc getting messed up %lu\n", IF_to_DE.pc);
     DE_to_EX.flag_n = IF_to_DE.flag_n;
     DE_to_EX.flag_z = IF_to_DE.flag_z;
     DE_to_EX.actually_pc = IF_to_DE.actually_pc;
+    DE_to_EX.btb_miss = IF_to_DE.btb_miss;
     DE_to_EX.branch_cond = 0;
     unsigned long opcode;
 
@@ -1522,6 +1542,11 @@ void pipe_stage_decode()
 	}
 	//printf("%u\n", DE_to_EX.decoded_instr.opcode);
 	//printf("decode de to ex rn  %lu\n", DE_to_EX.instr_data.rn);
+      if((DE_to_EX.decoded_instr.type == CB ||
+        DE_to_EX.decoded_instr.type == BI)) {
+            printf("A BRANCH INSTR IS IN DECODE\n");
+        }
+    
 }
 
 void pipe_stage_fetch()
@@ -1538,12 +1563,12 @@ void pipe_stage_fetch()
         tmp_pc_reset = CURRENT_STATE.PC;
         temp_pc += 4;
         resetting_pc = 0;
-        printf("WE ARE RESETTING");
-        printf("\nRESET PC %lu\n", CURRENT_STATE.PC);
+        printf("WE ARE RESETTING the PC\n");
+        printf("RESET PC VALUE %lx\n", CURRENT_STATE.PC);
     }
     
     //printf("PC 1 %lu\n", CURRENT_STATE.PC);
-    printf("\nHERE %lu\n", CURRENT_STATE.PC);
+    //printf("\nHERE %lu\n", CURRENT_STATE.PC);
     pc = mem_read_32(CURRENT_STATE.PC);
     IF_to_DE.flag_z = CURRENT_STATE.FLAG_Z;
     IF_to_DE.flag_n = CURRENT_STATE.FLAG_N;
@@ -1552,8 +1577,9 @@ void pipe_stage_fetch()
     //printf("HERE %lu\n", CURRENT_STATE.PC);
     bp_predict(temp_pc);
     IF_to_DE.predicted_pc = predicted_pc;
-    printf("predicted PC: %lu\n", predicted_pc);
-    printf("\n CURRENT STATE PC at end of fetch %lu\n", CURRENT_STATE.PC);
+    IF_to_DE.btb_miss = btb_miss_temp;
+    printf("predicted PC: %lx\n", predicted_pc);
+    printf("\n CURRENT STATE PC at end of fetch %lx\n", CURRENT_STATE.PC);
     //printf("HERE %lu\n", CURRENT_STATE.PC);
 	// predict next PC 
 	//bp_predict(CURRENT_STATE.PC);

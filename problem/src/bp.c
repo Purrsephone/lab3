@@ -32,28 +32,30 @@ void bp_predict(uint64_t pc_fetch)
     // if address tag is not equal to pc, just pc + 4
     if (bp.btb.entries[btb_index].tag != pc_fetch) {
         predicted_pc = pc_fetch + 4;
-        btb_miss = 1;
+        btb_miss_temp = 1;
         // falling into this condition and we don't want that
         printf("BTB_INDEX: %u\n", btb_index); 
-        printf("PC FETCH: %lu\n", pc_fetch);
-        printf("ADDR TAG: %lu\n", bp.btb.entries[btb_index].tag);
+        printf("PC FETCH: %lx\n", pc_fetch);
+        printf("ADDR TAG: %lx\n", bp.btb.entries[btb_index].tag);
         printf("MISS: ADDRESS TAG NOT EQUAL\n");
+
         return;
     }
     // if valid bit is not set, just pc + 4 
     else if (bp.btb.entries[btb_index].valid != 1) {
         predicted_pc = pc_fetch + 4;
-        btb_miss = 1;
+        btb_miss_temp = 1;
         printf("MISS: VALID BIT NOT SET\n");
         return;
     }
     // HIT case
     else {
         printf("HIT\n");
-        btb_miss = 0;
+        btb_miss_temp = 0;
         printf("BTB_INDEX: %u\n", btb_index); 
-        printf("PC FETCH: %lu\n", pc_fetch);
-        printf("ADDR TAG: %lu\n", bp.btb.entries[btb_index].tag);
+        printf("PC FETCH: %lx\n", pc_fetch);
+        printf("ADDR TAG: %lx\n", bp.btb.entries[btb_index].tag);
+        printf("BTB MISS TEMP AT END OF PREDICT %i\n", btb_miss_temp);
         // if branch is unconditional, then take target branch
         if (bp.btb.entries[btb_index].cond == 0) {
             predicted_pc = bp.btb.entries[btb_index].target;

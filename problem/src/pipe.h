@@ -30,7 +30,7 @@ int RUN_BIT;
 extern CPU_State CURRENT_STATE;
 
 extern uint64_t predicted_pc;
-extern int btb_miss;
+extern int btb_miss_temp;
 // use enumerated types to make equality tests faster & avoid strings
 
 // define opcodes
@@ -67,6 +67,7 @@ typedef struct Pipe_Reg_IFtoDE {
 	int flag_z;
 	int flag_n;
 	uint64_t predicted_pc;
+	int btb_miss;
 } Pipe_Reg_IFtoDE;
 
 typedef struct Pipe_Reg_DEtoEX {
@@ -80,6 +81,7 @@ typedef struct Pipe_Reg_DEtoEX {
 	int flag_n;
 	int branch_cond;
 	uint64_t predicted_pc;
+	int btb_miss;
 } Pipe_Reg_DEtoEX;
 
 typedef struct Pipe_Reg_EXtoMEM {
@@ -92,6 +94,7 @@ typedef struct Pipe_Reg_EXtoMEM {
 	int branch_taken;
 	int flag_z;
 	int flag_n;
+	int btb_miss;
 } Pipe_Reg_EXtoMEM;
 
 typedef struct Pipe_Reg_MEMtoWB {
