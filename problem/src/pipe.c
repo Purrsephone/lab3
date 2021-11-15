@@ -229,6 +229,7 @@ void pipe_cycle() {
         printf("PREDICTED PC: %lx\n", CURRENT_STATE.PC);
     }
     cycles++;
+    
     // let's print the btb 
     /*
     for(int i = 0; i < 81; i++) {
@@ -1013,18 +1014,22 @@ void pipe_stage_execute()
     }
     // TODO: we need the pc from when the branch instr was in fetch, is this right?? 
     // TODO: double check that target pc should be branch pc 
-    if((EX_to_MEM.decoded_instr.type == CB ||
-        EX_to_MEM.decoded_instr.type == BI)) {
+    
+    if((EX_to_MEM.decoded_instr.type == CB) ||
+        (EX_to_MEM.decoded_instr.type == BI)) {
             printf("SOPHIE HERE IS WHERE WE'RE UPDATING\n");
             printf("branch pc: %lx\n", branch_pc);
             printf("CURRENT VAL OF PC BEFORE UPDATE %lx\n", CURRENT_STATE.PC);
             uint64_t tmp_tmp = CURRENT_STATE.PC;
-            CURRENT_STATE.PC = branch_pc;
+            //CURRENT_STATE.PC = branch_pc;
             printf("CURRENT VAL OF PC AFTER UPDATE %lx\n", CURRENT_STATE.PC);
             printf("DE TO EX PC %lx\n", DE_to_EX.actually_pc);
             // why would it be de to ex actually pc for both? 
+            if(((is_conditional == 1) && (is_taken == 1)) || (is_conditional == 0)) {
+                //CURRENT_STATE.PC = branch_pc;
+            }
             printf("CHECK BRANCH PC AGAIN %lx\n", branch_pc);
-             bp_update(tmp_tmp, is_taken, is_conditional, DE_to_EX.actually_pc, branch_pc);
+            bp_update(DE_to_EX.actually_pc, is_taken, is_conditional, EX_to_MEM.actually_pc, branch_pc);
              //check if we need to flush 
              // cases where we guessed wrong 
              // the predicted target destination does not match the actual target.
@@ -1575,7 +1580,7 @@ void pipe_stage_fetch()
     IF_to_DE.pc = pc;
     IF_to_DE.actually_pc = CURRENT_STATE.PC;
     //printf("HERE %lu\n", CURRENT_STATE.PC);
-    bp_predict(temp_pc);
+    bp_predict(CURRENT_STATE.PC);
     IF_to_DE.predicted_pc = predicted_pc;
     IF_to_DE.btb_miss = btb_miss_temp; 
     printf("predicted PC: %lx\n", predicted_pc);
