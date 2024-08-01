@@ -4,21 +4,31 @@ Instructor: Prof. Yanjing Li
 TAs: Elizabeth Coble, Yuming Liu, Zequan Zhou
 Assigned: Tuesday, October 26th, 2021
 Due: 11:59 pm, Tuesday, November 16th, 2021
+
 For this assignment, you will expand on your pipelined ARM simulator from Lab 2 by developing a branch predictor. We will fully specify the behavior of the branch predictor, and your job is to implement it as specified.
+
 The source code for Lab 3 is provided on the course website. In the src/ directory, we provide two files (shell.c and shell.h) that implement the shell. Do not change these shell files. You are only allowed to modify the other four files provided (pipe.h, pipe.c, bp.h, and bp.c). You have already implemented the pipelined simulator in pipe.h and pipe.c. You should implement branch predictor in bp.h and bp.c and employ the branch predictor in your pipelined simulator (pipe.h and pipe.c).
+
 Use the simulator that you developed in Lab 2 as a starting point to implement the pipelined simulator with branch prediction. In addition, you should write your own input files to test your branch predictor and to demonstrate its benefits.
+
 Branch Predictor
-Organization. The branch predictor consists of (i) a gshare predictor and (ii) a branch target buffer. Note that the PC in this lab document, as well as CURRENT STATE.PC in the lab source code, refer to the PC
-in the fetch stage.
+Organization. The branch predictor consists of (i) a gshare predictor and (ii) a branch target buffer. Note that the PC in this lab document, as well as CURRENT STATE.PC in the lab source code, refer to the PC in the fetch stage.
+
 Gshare. The gshare predictor uses an 8-bit global branch history register (GHR). The most recent branch is stored in the least-significant-bit of the GHR and a value of ‘1’ denotes a taken branch. The predictor XORs the GHR with bits [9:2] of the PC and uses this 8 bit value to index into a 256-entry pattern history table (PHT). Each entry of the PHT is a 2-bit saturating counter: a taken branch increments whereas a not-taken branch decrements; the four values of the counter correspond to strongly not-taken (00), weakly not-taken (01), weakly taken (10), strongly taken (11).
+
 Branch Target Buffer. The branch target buffer (BTB) contains 1024 entries and is indexed by bits [11:2] of the PC. Each entry of the BTB contains (i) an address tag, which is the full 64 bits of the fetch stage PC; (ii) a valid bit (1 means the entry is valid, 0 means the entry is not valid); (iii) a bit indicating whether this branch is conditional (1 means the branch is conditional, 0 means the branch is unconditional); and (iv) the target of the branch, which is 64 bits, with the low two bits always equal to 2'b00. Note, in actual hardware implementation only bits 63:12 of the PCs are used as tags. However, we use the full 64 bits just to keep the code clean. Also, a valid bit is not strictly required, but we ask you to implement it in this lab for better prediction accuracy.
+
 Prediction. At every fetch cycle, the predictor indexes into both the BTB and the PHT. If the predictor misses in the BTB (i.e., address tag != PC or valid bit == 0), then the next PC is predicted as PC+4. If the predictor hits in the BTB, then the next PC is predicted as the target supplied by the BTB entry when either of the following two conditions are met: (i) the BTB entry indicates that the branch is unconditional, or (ii) the gshare predictor indicates that the branch should be taken. Otherwise, the next PC is predicted as PC+4.
+
 Update. The branch predictor structures are always updated in the execute stage, where both the branch target and the branch condition are resolved. The update consists of: (i) updating the PHT, which is indexed using the current value of the GHR and PC, (ii) updating the GHR (note that, the update of GHR must happen after the update to PHT to make sure we update the right entry), and (iii) updating the BTB.
 1/3
 
 Unconditional branches do not update the PHT or the GHR, but only the BTB (setting the unconditional bit in the corresponding entry). When you need to add a new PC/branch target to BTB, but the BTB entry was already taken by another PC with the same lower address bits, you should always replace the entry with the new PC.
+
 Direct and Indirect Branches. In this lab, you need to use BTB to predict indirect branches as well as direct branches. However the accuracy of prediction may be low for indirect branches. Indirect Branches are hard to predict because of the undetermined branch destination.
+
 Initial State. All branch predictor structures are initialized to 0.
+
 The Simulation Routine
 There are two files, (bp.h and bp.c) where you will implement the branch predictor. In bp.h, we provide a struct named bp t, representing the current status of the branch predictor. You should add variables to represent Gshare and BTB in this struct. We also have two function prototypes here, bp predict and bp update. You should implement these two functions in bp.c. You are allowed to add any parameters to these two functions but you should not change the prototypes. Then, in your pipelined simulator in pipe.c, you must use bp predict to determine the address of the next instruction and bp update to update the status of the branch predictor when a branch decision is made.
 typedef struct
@@ -28,37 +38,54 @@ typedef struct
 } bp_t;
 void bp_predict(/*......*/);
 void bp_update(/*......*/);
+
 Flushing the Pipeline
-After a branch is fully resoved in the EX stage, the pipeline is flushed under any of the following conditions: • The instruction is a branch, but the predicted target destination does not match the actual target.
+After a branch is fully resoved in the EX stage, the pipeline is flushed under any of the following conditions: 
+• The instruction is a branch, but the predicted target destination does not match the actual target.
 • The instruction is a branch, but it was not recognized as a branch (i.e., BTB miss).
 Note that, we will never incorrectly predict a non-branch instruction as a branch instruction.
+
 Note that if you have a branch instruction after a HLT instruction, your branch predictor might update the PC to the predicted value before the extra branch instruction is flushed at the execute stage of HLT. This differs from lab 2 because the PC was only updated by branch instructions in the execute stage. Ultimately, you should ensure your branch predictor behaves equivalently to the reference simulator.
+
 Steps to Complete This Lab
-We suggest that you develop the pipelined simulator with branch prediction in 3 steps. Step 1: Implement the branch predictor structure (Gshare and BTB).
+We suggest that you develop the pipelined simulator with branch prediction in 3 steps. 
+Step 1: Implement the branch predictor structure (Gshare and BTB).
 Step 2: Implement bp update to update the branch predictor status and bp predict to predict the next PC.
 Step 3: Employ the branch predictor in the pipelined simulator that you developed in Lab 2 and handle the branch recovery for misprediction cases.
+
 Testing Your Code
 We provide a few test inputs to test your code. In order to test that your branch predictor is able to improve the performance, you should also write more test cases on your own. (Hint. Loops with a large number of iterations can result in significant performance difference between simulators with/without branch
-2/3
-
 prediction.) You can use the rdump/mdump command to verify that the state of the machine is updated correctly after each cycle.
+
 We will provide you with a reference simulator on the course website so that you can check your branch predictor implementation. As with previous labs, your submission will be graded against this ref simulator.
+
 There is a new command named bpdump in the reference simulator.
 bpdump <pht low> <pht high> <btb low> <btb high>: Dump the contents of PHT index pht low through pht high and BTB index btb low through btb high to the screen (but not to the dumpfile). It also shows the contents of GHR and fetch-stage PC.
+
 Lab Files
-From the course website, you will find a source code distribution with two subdirectories src/ and inputs/. In src/, we are providing you with the simulator skeleton as described above. You can compile the simulator
-with the provided Makefile.
+From the course website, you will find a source code distribution with two subdirectories src/ and inputs/. 
+
+In src/, we are providing you with the simulator skeleton as described above. You can compile the simulator with the provided Makefile.
+
 In inputs/, we have written some input files for you. You should write more input files in order to be
 confident that your simulator is correct.
+
 Handin
+
 If you are working in groups of 2, only one copy of the code should be submitted. Please make sure you write down both names and CNET IDs at the top of the pipe.c and bp.c files.
+
 You should electronically hand in your code (all files in the src/ directory) within a lab3 folder of your own SVN repository. Note that we will check out your code automatically and look for the following folder:
+
 Your SVN ROOT Directory/lab3/src/
+
 So, if your code is not in the correct directory or the name of the folders are not the same as above (e.g. “Lab3” instead of “lab3”), you will see delay in grading your lab. Also, please do not insert large files in that folder.
+
 Contact the TA if your handin SVN repository does not exist. Your code should be readable and well- documented.
+
 You should stick with the same partner as Lab2.
+
 Key Reminders
 1. You only need to modify four files, (pipe.h, pipe.c, bp.h, and bp.c) and you are not allowed to change shell.h and shell.c. You must use mem read 32 and mem write 32 functions to implement loading and storing data. You are not allowed to modify these functions.
 2. You should write more input files in order to be confident that your simulator is correct. Use the same method as Lab1 to assemble a ARM program (with script asm2hex).
 3. We will test your simulator with many input programs (some provided to you, some not). We will check your code cycle by cycle for each test input (using rdump and mdump) and your output must match the reference simulator output EXACTLY.
-3/3
+
